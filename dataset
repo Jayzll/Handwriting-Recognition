@@ -1,0 +1,41 @@
+import os
+import cv2
+import numpy as np
+import pandas as pd
+from tensorflow.keras.utils import to_categorical
+from sklearn.model_selection import train_test_split
+
+# Parameters
+img_size = 64  # Resize all images to 64x64 pixels
+
+# Load labels
+data = pd.read_csv('path_to_labels.csv')  # Adjust path as needed
+# Assuming labels.csv has columns: "image_name" and "character"
+
+# Load images and resize them
+def load_images(data, img_folder):
+    images, labels = [], []
+    for _, row in data.iterrows():
+        img_path = os.path.join(img_folder, row['image_name'])
+        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+        img = cv2.resize(img, (img_size, img_size))
+        images.append(img)
+        labels.append(row['character'])
+    return np.array(images), np.array(labels)
+
+images, labels = load_images(data, 'path_to_images_folder')
+
+# Normalize images
+images = images / 255.0  # Scale pixel values to [0, 1]
+
+# Encode labels to numerical values and one-hot encode
+unique_chars = sorted(set(labels))
+char_to_index = {char: idx for idx, char in enumerate(unique_chars)}
+labels = np.array([char_to_index[char] for char in labels])
+labels = to_categorical(labels, num_classes=len(unique_chars))
+
+# Reshape images for CNN input
+images = images.reshape(-1, img_size, img_size, 1)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.2, random_state=42)
